@@ -72,7 +72,8 @@ typedef enum PODMENU{
 typedef struct CONTROL{
 	Mode required_mode;
 	Menu current_menu;
-    bool enter_exit_podmenu;
+    bool enter_podmenu;
+	bool exit_podmenu;
 } Control;
 
 static void CLK_Config(void);

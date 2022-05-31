@@ -53,7 +53,7 @@ uint8_t buf[SIZE_BUFFER];
 uint8_t buf_index = 0;
 bool wait_connect_pult = 0;
 uint8_t power_on = 0;
-uint8_t menu = 0;
+uint8_t menu_motors = 0;
 uint8_t menue = 0;
 uint8_t upmotor_menu = 0;
 uint8_t bottommotor_menu = 0;
@@ -76,7 +76,7 @@ const uint8_t led2 = 24;
 
 void setup()  {
 	CLK_Config();
-	//IWDG_Config();
+	IWDG_Config();
   	GPIO_Config();
 	IWDG_ReloadCounter();  
 	EEPROM_Config();
@@ -89,7 +89,7 @@ void setup()  {
 
 void loop()  
 {
-	Control ctrl = {MODE_NONE, MENU_MENUE, false};
+	Control ctrl = {MODE_NONE, MENU_MENUE, false, false};
 	while (wait_connect_pult)
 	{
 		IWDG_ReloadCounter();
@@ -175,7 +175,7 @@ void loop()
 						Serial_flush();
 						ctrl.current_menu = MENU_MENUE;
 						power_on = 0;
-						menu = 1;
+						menu_motors = 1;
 						RESET_TIME_LOOP_10s;
 						break;
 					}
@@ -201,7 +201,7 @@ void loop()
 				iwdg_reset(); // Serial.println(F("Time read end. Restart"));
 			}
 		}
-		while (menu)
+		while (menu_motors)
 		{
 			IWDG_ReloadCounter();
 			flash_led(ctrl.required_mode);
@@ -226,97 +226,84 @@ void loop()
 						ctrl.current_menu = MENU_MENUE;
 						RESET_TIME_LOOP_15s;
 					}
+					//UP
 					else if (buf_cmp(buf, buf_index, Menu_plus_to_UpmotorMenu_cmd, 7))
 					{
 						buf_index = 0; //Serial.println(F("UPMOTOR WITH ENTER RETURN or PLUS NEXT"));
 						Serial_flush();
 						ctrl.current_menu = MENU_UP;
-                        ctrl.enter_exit_podmenu = true;
 						RESET_TIME_LOOP_15s;
 					}
-					else if (buf_cmp(buf, buf_index, UpmotorMenu_enter_to_Upmotor_cmd, 6))
+					else if (ctrl.enter_podmenu && buf_cmp(buf, buf_index, UpmotorMenu_enter_to_Upmotor_cmd, 6))
 					{
 						buf_index = 0; //Serial.println(F("UPMOTOR"));
 						Serial_flush();
-                        ctrl.enter_exit_podmenu = false;
 						ENTER_OFF_VBUT;
 						podmenu_motors = 1;
-						menu = 0;
+						menu_motors = 0;
 						break;
 					}
-					// else if (memmem(buf, buf_index, Upmotor_enter_to_UpmotorMenu_cmd, 9) != NULL)
-					// {
-					// 	buf_index = 0; //Serial.println(F("UPMOTOR WITH ENTER RETURN or PLUS NEXT"));
-					// 	Serial_flush();
-					// 	control.current_menu = MENU_UP;
-					// 	//stop_enter_press_loop();
-					// 	//loop_check_menu();
-					// }
+					else if (ctrl.exit_podmenu && buf_cmp(buf, buf_index, Upmotor_enter_to_UpmotorMenu_cmd, 9))
+					{
+						buf_index = 0; //Serial.println(F("UPMOTOR WITH ENTER RETURN or PLUS NEXT"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						ctrl.current_menu = MENU_UP;
+						ctrl.exit_podmenu = false;
+						RESET_TIME_LOOP_15s;
+					}
+					//DOWN
 					else if (buf_cmp(buf, buf_index, UpmotorMenu_plus_to_BottommotorMenu_cmd, 7))
 					{
 						buf_index = 0; //Serial.println(F("DOWNMOTOR WITH ENTER RETURN or PLUS NEXT"));
 						Serial_flush();
 						ctrl.current_menu = MENU_DOWN;
-                        ctrl.enter_exit_podmenu = true;
 						RESET_TIME_LOOP_15s;
 					}
-					else if (buf_cmp(buf, buf_index, BottommotorMenu_enter_to_Bottommotor_cmd, 6))
+					else if (ctrl.enter_podmenu && buf_cmp(buf, buf_index, BottommotorMenu_enter_to_Bottommotor_cmd, 6))
 					{
 						buf_index = 0; //Serial.println(F("DOWNMOTOR"));
 						Serial_flush();
-                        ctrl.enter_exit_podmenu = false;
 						ENTER_OFF_VBUT;
 						podmenu_motors = 1;
-						menu = 0;
+						menu_motors = 0;
 						break;
 					}
-					// else if (memmem(buf, buf_index, Bottommotor_enter_to_BottommotorMenu_cmd, 9) != NULL)
-					// {
-					// 	buf_index = 0;
-					// 	Serial.println(F("DOWNMOTOR WITH ENTER RETURN or PLUS NEXT"));
-					// 	Serial1.flush();
-					// 	cur_menu = MENU_DOWN;
-					// 	stop_enter_press_loop();
-					// 	loop_check_menu();
-					// }
-					// else if (memmem(buf, buf_index, BottommotorMenu_plus_to_BothmotorsMenu_cmd, 7) != NULL)
-					// {
-					// 	buf_index = 0;
-					// 	Serial.println(F("BOTHMOTOR WITH ENTER RETURN or PLUS NEXT"));
-					// 	Serial1.flush();
-					// 	cur_menu = MENU_BOTH;
-					// 	stop_enter_press_loop();
-					// 	loop_check_menu();
-					// }
-					// else if (memmem(buf, buf_index, Bothmotors_enter_to_BothmotorsMenu_cmd, 9) != NULL)
-					// {
-					// 	buf_index = 0;
-					// 	Serial.println(F("BOTHMOTOR WITH ENTER RETURN or PLUS NEXT"));
-					// 	Serial1.flush();
-					// 	cur_menu = MENU_BOTH;
-					// 	stop_enter_press_loop();
-					// 	loop_check_menu();
-					// }
-					// else if (memmem(buf, buf_index, ScrethingMenu_plus_to_InstallMenu_cmd, 7) != NULL)
-					// {
-					// 	buf_index = 0;
-					// 	Serial.println(F("INSTALL WITH ENTER RETURN or PLUS NEXT"));
-					// 	Serial1.flush();
-					// 	cur_menu = MENU_INSTALL;
-					// 	stop_enter_press_loop();
-					// 	loop_check_menu();
-					// }
-					// else if (memmem(buf, buf_index, InstallMenu_enter_to, 12) != NULL)
-					// {
-					// 	buf_index = 0;
-					// 	Serial.println(F("INSTALL"));
-					// 	Serial1.flush();
-					// 	cur_menu = MENU_INSTALL;
-					// 	stop_enter_press_loop();
-					// 	menu = 0;
-					// 	install_door_open = 1;
-					// 	break;
-					// }
+					else if (ctrl.exit_podmenu && buf_cmp(buf, buf_index, Bottommotor_enter_to_BottommotorMenu_cmd, 9))
+					{
+						buf_index = 0; //Serial.println(F("DOWNMOTOR WITH ENTER RETURN or PLUS NEXT"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						ctrl.current_menu = MENU_DOWN;
+						ctrl.exit_podmenu = false;
+						RESET_TIME_LOOP_15s;
+					}
+					//UP+DOWN
+					else if (buf_cmp(buf, buf_index, BottommotorMenu_plus_to_BothmotorsMenu_cmd, 7))
+					{
+						buf_index = 0; //Serial.println(F("BOTHMOTOR WITH ENTER RETURN or PLUS NEXT"));
+						Serial_flush();
+						ctrl.current_menu = MENU_BOTH;
+						RESET_TIME_LOOP_15s;
+					}
+					if (ctrl.enter_podmenu && buf_cmp(buf, buf_index, BothmotorsMenu_enter_to_Bothmotors_cmd, 6))
+					{
+						buf_index = 0; //Serial.println(F("BOTHMOTOR"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						podmenu_motors = 1;
+						menu_motors = 0;
+						break;
+					}
+					else if (ctrl.exit_podmenu && buf_cmp(buf, buf_index, Bothmotors_enter_to_BothmotorsMenu_cmd, 9))
+					{
+						buf_index = 0; //Serial.println(F("BOTHMOTOR WITH ENTER RETURN or PLUS NEXT"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						ctrl.current_menu = MENU_BOTH;
+					 	ctrl.exit_podmenu = false;
+					 	RESET_TIME_LOOP_15s;
+					}
 				}
 			}
 			switch_menu_press_plus(&ctrl);
@@ -331,16 +318,90 @@ void loop()
             {
                 Serial_flush();
                 OUT_PIN_OFF;
-                ctrl.enter_exit_podmenu = true;
+				ctrl.enter_podmenu = false;
+                ctrl.exit_podmenu = true;
                 podmenu_motors = 0;
-                menu = 1;
+                menu_motors = 1;
 				RESET_TIME_LOOP_15s;
                 break;
             }
-            
 		}
-
 	}
+}
+
+void switch_menu_press_plus(Control* ctrl)
+{
+	if (ctrl->enter_podmenu || ctrl->exit_podmenu)
+	{
+        PLUS_OFF_VBUT;
+		start_emulate_press_enter();
+        return;
+	}
+	static uint32_t press_on = 0;
+	static uint32_t loop_press = 0;
+	if (ctrl->required_mode == ctrl->current_menu)
+	{
+		PLUS_OFF_VBUT;
+		ctrl->enter_podmenu = true;
+	}
+	else
+	{	
+		if (millis() > loop_press)
+		{
+			PLUS_ON_VBUT; //digitalWrite(BUT_PLUS, HIGH);
+			press_on = millis() + 300;
+			loop_press = millis() + 550;
+		}
+		if (millis() > press_on)
+		{
+			PLUS_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
+		}
+	}
+}
+
+bool scan_change_mode(Control* ctrl)
+{
+	if (button_mode)
+	{
+		uint8_t mode = (uint8_t)ctrl->required_mode;
+		uint32_t time_end = millis() + 3000;
+		while (true)
+		{
+			IWDG_ReloadCounter();
+			if (button_mode)
+			{
+				time_end = millis() + 3000;
+				button_mode = 0;
+				mode += 1;
+				if (mode >= 4)
+				{
+					mode = 1;
+				}
+			}
+			if (button_enter)
+			{
+				button_enter = 0;
+				if (mode == ctrl->required_mode)
+				{
+					return false;
+				}
+				ctrl->required_mode = mode;
+				LEDS_OFF;
+				flash_led(ctrl->required_mode);
+				return true;
+			}
+			continous_flash_led(mode);
+			scan_buttons();
+			if (millis() > time_end || button_plus || button_minus)
+			{
+				continous_flash_led(ctrl->required_mode);
+				button_plus = 0;
+				button_minus = 0;
+				return false;
+			}
+		}
+	}
+	return false;
 }
 
 bool buf_cmp(uint8_t* buf, uint8_t buflen, uint8_t* target, uint8_t tlen)
@@ -398,105 +459,6 @@ void start_emulate_press_enter()
 	if (millis() > press_on_enter)
 	{
 		ENTER_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
-	}
-}
-
-// void switch_menu_press_plus(Control* ctrl)
-// {
-// 	LED_UP_ON;
-// 	static uint32_t press_on = 0;
-// 	static uint32_t loop_press = 0;
-// 	if (ctrl->required_mode != ctrl->current_menu)
-// 	{	
-// 		if (millis() > loop_press)
-// 		{
-// 			PLUS_ON_VBUT; //digitalWrite(BUT_PLUS, HIGH);
-// 			press_on = millis() + 300;
-// 			loop_press = millis() + 550;
-// 		}
-// 		if (millis() > press_on)
-// 		{
-// 			PLUS_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
-// 		}
-// 	}
-// 	else
-// 	{
-// 		PLUS_OFF_VBUT;
-// 		// if (ctrl->enter_exit_podmenu)
-// 		// {
-// 		// 	start_emulate_press_enter();
-// 		// }
-// 	}
-// 	LED_UP_OFF;
-// }
-
-void switch_menu_press_plus(Control* ctrl)
-{
-	if (ctrl->enter_exit_podmenu)
-	{
-        PLUS_OFF_VBUT;
-		start_emulate_press_enter();
-        return;
-	}
-	static uint32_t press_on = 0;
-	static uint32_t loop_press = 0;
-	if (ctrl->required_mode == ctrl->current_menu)
-	{
-		PLUS_OFF_VBUT;
-	}
-	else
-	{	
-		if (millis() > loop_press)
-		{
-			PLUS_ON_VBUT; //digitalWrite(BUT_PLUS, HIGH);
-			press_on = millis() + 300;
-			loop_press = millis() + 550;
-		}
-		if (millis() > press_on)
-		{
-			PLUS_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
-		}
-	}
-}
-
-bool scan_change_mode(Control* ctrl)
-{
-	IWDG_ReloadCounter();
-	if (button_mode)
-	{
-		Mode mode = ctrl->required_mode;
-		uint32_t time_end = millis() + 3000;
-		while (true)
-		{
-			IWDG_ReloadCounter();
-			if (button_enter)
-			{
-				button_enter = 0;
-				ctrl->required_mode = mode;
-				LEDS_OFF;
-				flash_led(ctrl->required_mode);
-				return true;
-			}
-			if (button_mode)
-			{
-				time_end = millis() + 3000;
-				button_mode = 0;
-				mode += 1;
-				if (mode >= 4)
-				{
-					mode = 1;
-				}
-			}
-			continous_flash_led(mode);
-			scan_buttons();
-			if (millis() > time_end || button_plus || button_minus)
-			{
-				continous_flash_led(ctrl->required_mode);
-				button_plus = 0;
-				button_minus = 0;
-				return false;
-			}
-		}
 	}
 }
 
@@ -651,43 +613,6 @@ void scan_buttons()
 //			delay_3sec = millis() + 3000;
 		}
 	}
-	//up+down
-	// if (buttonStateChange[UP] || buttonStateChange[DOWN])
-	// {
-	// 	//up
-	// 	if (buttonStateChange[UP])
-	// 	{
-	// 		buttonStateChange[UP] = 0;
-	// 		if (buttonStateON[UP]) mode_up_motor = 1;
-	// 		if (buttonStateOFF[UP]) mode_up_motor = 0;
-	// 	}
-	// 	//down
-	// 	if (buttonStateChange[DOWN])
-	// 	{
-	// 		buttonStateChange[DOWN] = 0;
-	// 		if (buttonStateON[DOWN]) mode_down_motor = 1;
-	// 		if (buttonStateOFF[DOWN]) mode_down_motor = 0;
-	// 	}
-	// 	//up+down
-	// 	mode_both_motors = 0;
-	// 	if (mode_up_motor && mode_down_motor)
-	// 	{
-	// 		Serial.println(F("BOTH"));
-	// 		mode_both_motors = 1;
-	// 	}
-	// 	else if (mode_up_motor && !mode_down_motor)
-	// 	{
-	// 		Serial.println(F("UP"));
-	// 	}
-	// 	else if (!mode_up_motor && mode_down_motor)
-	// 	{
-	// 		Serial.println(F("DOWN"));
-	// 	}
-	// 	else
-	// 	{
-	// 		Serial.println(F("MAIN"));
-	// 	}
-	// }
 }
 
 void getButtonState(uint8_t but) {
