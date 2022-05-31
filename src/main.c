@@ -133,6 +133,10 @@ void loop()
 		{
 			IWDG_ReloadCounter();
 			flash_led(ctrl.required_mode);
+			if (ctrl.current_menu == MENU_INSTALL)
+			{
+				start_emulate_press_enter_reset();
+			}			
 			if (Serial_available() > 0) 
 			{
 				incomingByte = Serial_read(); // get the character
@@ -142,32 +146,34 @@ void loop()
 					if (buf_cmp(buf, buf_index, pre_cmd, 5))
 					{
 						buf_index = 0;
+						Serial_flush();
 						time_delay = millis() + 500;
 						while (time_delay > millis())
 						{
 							IWDG_ReloadCounter();
 							flash_led(ctrl.required_mode);
 						}
-						RESET_TIME_LOOP_15s;
 						Serial_write(0x23);
 						Serial_write(0x0D);
 						Serial_write(0x0A);
-						Serial_flush();
+						RESET_TIME_LOOP_15s;
 					}
 					else if (buf_cmp(buf, buf_index, menu_cmd, 7))
 					{
 						buf_index = 0; // Serial.println(F("MENUE PLUS NEXT"));
 						Serial_flush();
+						ENTER_OFF_VBUT;
 						ctrl.current_menu = MENU_MENUE;
 						power_on = 0;
 						menu = 1;
-						RESET_TIME_LOOP_10s;
+						RESET_TIME_LOOP_15s;
 						break;
 					}
 					else if (buf_cmp(buf, buf_index, InstallMode, 7))
 					{
 						buf_index = 0; // Serial.println(F("INSTALL MODE"));
 						Serial_flush();
+						ENTER_OFF_VBUT;
 						ctrl.current_menu = MENU_INSTALL;
 						LED_UP_ON;
 						LED_DOWN_OFF;
@@ -349,18 +355,15 @@ void loop()
 			scan_buttons();
 			if (button_mode_5s)
 			{
-				ENTER_ON_VBUT;
-				time_delay = millis() + 4000;
-				while (time_delay > millis())
-				{
-					IWDG_ReloadCounter();
-					flash_led(ctrl.current_menu);
-				}
-				ENTER_OFF_VBUT;
-				while (true)
-				{
-					LEDS_OFF;
-				}
+				Serial_flush();
+				button_mode = 0;
+				ctrl.required_mode = MODE_UP;
+				ctrl.enter_podmenu = false;
+                ctrl.exit_podmenu = false;
+				podmenu_install = 0;
+				power_on = 1;
+				RESET_TIME_LOOP_15s;
+				break;
 			}
 		}
 	}
@@ -494,6 +497,22 @@ void start_emulate_press_enter()
 		loop_press_enter = millis() + 550;
 	}
 	if (millis() > press_on_enter)
+	{
+		ENTER_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
+	}
+}
+
+void start_emulate_press_enter_reset()
+{
+	static uint32_t press_on_enter_reset = 0;
+	static uint32_t loop_press_enter_reset = 0;
+	if (millis() > loop_press_enter_reset)
+	{
+		ENTER_ON_VBUT; 
+		press_on_enter_reset = millis() + 3000;
+		loop_press_enter_reset = millis() + 5500;
+	}
+	if (millis() > press_on_enter_reset)
 	{
 		ENTER_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
 	}
@@ -654,7 +673,7 @@ void scan_buttons()
 	if (!button_mode || button_plus || button_minus || button_enter)
 	{
 		button_mode_5s = 0;
-		mode_delay_5sec = millis() + 5000;
+		mode_delay_5sec = millis() + DELAY_PRESS;
 	}
 	if (button_mode)
 	{
@@ -682,7 +701,7 @@ void scan_buttons()
 	if (!button_enter || button_plus || button_minus || button_mode)
 	{
 		button_enter_5s = 0;
-		enter_delay_5sec = millis() + 5000;
+		enter_delay_5sec = millis() + DELAY_PRESS;
 	}
 	if (button_enter)
 	{

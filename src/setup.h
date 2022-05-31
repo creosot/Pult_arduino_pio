@@ -38,6 +38,7 @@
 #define OUT_PIN_OFF (GPIO_WriteHigh(OUT_GPIO_PORT, OUT_GPIO_PINS))
 #define RESET_TIME_LOOP_10s (time_loop = millis() + 10000)
 #define RESET_TIME_LOOP_15s (time_loop = millis() + 15000)
+#define DELAY_PRESS 3000
 
 typedef enum FLASH_MODE{
 	FLASH_UP = 1,
@@ -84,9 +85,6 @@ static void IWDG_Config();  //1.02s
 static void EEPROM_Config();
 void getButtonState(uint8_t but);
 void scan_buttons();
-// void *memmem(const void *haystack, size_t hlen, const void *needle, size_t nlen);
-//void * __memmem(const void *haystack_start, size_t haystack_len, const void *needle_start, size_t needle_len);
-//bool select_mode(Control* ctrl);
 bool scan_change_mode(Control* ctrl);
 void flash_led(Flash_mode flash);
 void flash_install_led();
@@ -94,7 +92,7 @@ void continous_flash_led(Flash_mode flash);
 void iwdg_reset();
 void check_reset_flag();
 void switch_menu_press_plus(Control* ctrl);
-//void emulate_press_enter(Control* ctrl);
 void start_emulate_press_enter();
+void start_emulate_press_enter_reset();
 void emulate_plus_minus_press();
 bool buf_cmp(uint8_t* buf, uint8_t buflen, uint8_t* target, uint8_t tlen);
