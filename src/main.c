@@ -28,10 +28,8 @@ uint8_t InstallMenu_enter_to_Stopped_SensorOn_cmd[] = { 0x3F, 0x09, 0x48, 0x0D, 
 uint8_t InstallMode[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t DoorClose[] = { 0x55, 0x0D, 0x0A };
 uint8_t DoorOpen[] = { 0x57, 0x0D, 0x0A };
-uint8_t InstallMenu_enter_to[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A, 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
+uint8_t InstallMenu_enter_to_Install[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A, 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t Enter_Return[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
-
-//Control ctrl = {MODE_UP, MENU_MENUE};
 
 uint8_t buttonMask[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
 uint8_t buttonOnLevel[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
@@ -43,36 +41,23 @@ volatile uint8_t buttonStateChange[BUTTON_COUNT] = { 0 };
 volatile uint8_t button_plus = 0;
 volatile uint8_t button_minus = 0;
 volatile uint8_t button_enter = 0;
+volatile uint8_t button_enter_5s = 0;
 volatile uint8_t button_mode = 0;
-
-uint8_t cur_menu = 0; //MENU_MENUE;
-uint8_t to_menu = 0; //MENU_MENUE;
+volatile uint8_t button_mode_5s = 0;
 
 int incomingByte = 0;
 uint8_t buf[SIZE_BUFFER];
 uint8_t buf_index = 0;
 bool wait_connect_pult = 0;
 uint8_t power_on = 0;
-uint8_t menu_motors = 0;
+uint8_t menu = 0;
 uint8_t menue = 0;
-uint8_t upmotor_menu = 0;
-uint8_t bottommotor_menu = 0;
 uint8_t podmenu_motors = 0;
-uint8_t downmotor = 0;
-uint8_t bothmotors_menu = 0;
-uint8_t bothmotors = 0;
 uint8_t scretching_menu = 0;
 uint8_t install_door_open = 0;
 uint8_t install_door_close = 0;
-uint8_t stoptime_menu = 0;
+uint8_t podmenu_install = 0;
 uint8_t door_open = 0;
-uint8_t start_loop_impuls_enter_press = 0;
-
-const uint8_t led1 = 23;
-const uint8_t led2 = 24;
-// int brightness = 0;    // how bright the LED is
-// int fadeAmount = 5;    // how many points to fade the LED by
-// char i;
 
 void setup()  {
 	CLK_Config();
@@ -175,21 +160,21 @@ void loop()
 						Serial_flush();
 						ctrl.current_menu = MENU_MENUE;
 						power_on = 0;
-						menu_motors = 1;
+						menu = 1;
 						RESET_TIME_LOOP_10s;
 						break;
 					}
-					// else if (memmem(buf, buf_index, InstallMode, 7) != NULL)
-					// {
-					// 	buf_index = 0;
-					// 	// Serial.println(F("INSTALL MODE"));
-					// 	Serial_flush();
-					// 	cur_menu = MENU_INSTALL;
-					// 	// led_install_flash();
-					// 	power_on = 0;
-					// 	install_door_open = 1;
-					// 	break;
-					// }
+					else if (buf_cmp(buf, buf_index, InstallMode, 7))
+					{
+						buf_index = 0; // Serial.println(F("INSTALL MODE"));
+						Serial_flush();
+						ctrl.current_menu = MENU_INSTALL;
+						LED_UP_ON;
+						LED_DOWN_OFF;
+						power_on = 0;
+						podmenu_install = 1;
+						break;
+					}
 				}
 				if (buf_index >= SIZE_BUFFER)
 				{
@@ -201,7 +186,7 @@ void loop()
 				iwdg_reset(); // Serial.println(F("Time read end. Restart"));
 			}
 		}
-		while (menu_motors)
+		while (menu)
 		{
 			IWDG_ReloadCounter();
 			flash_led(ctrl.required_mode);
@@ -240,7 +225,7 @@ void loop()
 						Serial_flush();
 						ENTER_OFF_VBUT;
 						podmenu_motors = 1;
-						menu_motors = 0;
+						menu = 0;
 						break;
 					}
 					else if (ctrl.exit_podmenu && buf_cmp(buf, buf_index, Upmotor_enter_to_UpmotorMenu_cmd, 9))
@@ -266,7 +251,7 @@ void loop()
 						Serial_flush();
 						ENTER_OFF_VBUT;
 						podmenu_motors = 1;
-						menu_motors = 0;
+						menu = 0;
 						break;
 					}
 					else if (ctrl.exit_podmenu && buf_cmp(buf, buf_index, Bottommotor_enter_to_BottommotorMenu_cmd, 9))
@@ -292,7 +277,7 @@ void loop()
 						Serial_flush();
 						ENTER_OFF_VBUT;
 						podmenu_motors = 1;
-						menu_motors = 0;
+						menu = 0;
 						break;
 					}
 					else if (ctrl.exit_podmenu && buf_cmp(buf, buf_index, Bothmotors_enter_to_BothmotorsMenu_cmd, 9))
@@ -303,6 +288,23 @@ void loop()
 						ctrl.current_menu = MENU_BOTH;
 					 	ctrl.exit_podmenu = false;
 					 	RESET_TIME_LOOP_15s;
+					}
+					//INSTALL
+					else if (buf_cmp(buf, buf_index, ScrethingMenu_plus_to_InstallMenu_cmd, 7))
+					{
+						buf_index = 0; //Serial.println(F("INSTALL WITH ENTER RETURN or PLUS NEXT"));
+						Serial_flush();
+						ctrl.current_menu = MENU_INSTALL;
+						RESET_TIME_LOOP_15s;
+					}
+					else if (buf_cmp(buf, buf_index, InstallMenu_enter_to_Install, 12))
+					{
+						buf_index = 0; //Serial.println(F("INSTALL"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						podmenu_install = 1;
+						menu = 0;
+						break;
 					}
 				}
 			}
@@ -321,10 +323,45 @@ void loop()
 				ctrl.enter_podmenu = false;
                 ctrl.exit_podmenu = true;
                 podmenu_motors = 0;
-                menu_motors = 1;
+                menu = 1;
 				RESET_TIME_LOOP_15s;
                 break;
             }
+			if (button_enter_5s)
+			{
+				Serial_flush();
+                OUT_PIN_OFF;
+				LED_UP_ON;
+				LED_DOWN_OFF;	
+				ctrl.required_mode = MODE_INSTALL;
+				ctrl.enter_podmenu = false;
+                ctrl.exit_podmenu = true;
+                podmenu_motors = 0;
+                menu = 1;	
+				RESET_TIME_LOOP_15s;
+                break;
+			}
+		}
+		while (podmenu_install)
+		{
+			IWDG_ReloadCounter();
+			flash_install_led();
+			scan_buttons();
+			if (button_mode_5s)
+			{
+				ENTER_ON_VBUT;
+				time_delay = millis() + 4000;
+				while (time_delay > millis())
+				{
+					IWDG_ReloadCounter();
+					flash_led(ctrl.current_menu);
+				}
+				ENTER_OFF_VBUT;
+				while (true)
+				{
+					LEDS_OFF;
+				}
+			}
 		}
 	}
 }
@@ -518,6 +555,17 @@ void iwdg_reset()
 	}
 }
 
+void flash_install_led()
+{
+	static uint32_t time_on = 0;
+	if (millis() > time_on)
+	{
+		GPIO_WriteReverse(LED_GPIO_PORT, LED_DOWN_PIN);
+		GPIO_WriteReverse(LED_GPIO_PORT, LED_UP_PIN);
+		time_on = millis() + 700;
+	}
+}
+
 void flash_led(Flash_mode flash)
 {
 	static uint32_t time_on = 0;
@@ -538,6 +586,10 @@ void flash_led(Flash_mode flash)
 			break;
 		case FLASH_NONE:
 			GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
+			break;
+		case FLASH_INSTALL:
+			GPIO_WriteReverse(LED_GPIO_PORT, LED_GPIO_PINS);
+			break;
 		default:
 			break;
 		}
@@ -547,6 +599,8 @@ void flash_led(Flash_mode flash)
 
 void scan_buttons()
 {
+	static unsigned long enter_delay_5sec = 0xFFFF;
+	static unsigned long mode_delay_5sec = 0xFFFF;
 	for (uint8_t i = 0; i < BUTTON_COUNT; i++)
 	{
 		getButtonState(i); 
@@ -596,8 +650,20 @@ void scan_buttons()
 			button_mode = 0;
 		}
 	}
+	//press mode 5sec
+	if (!button_mode || button_plus || button_minus || button_enter)
+	{
+		button_mode_5s = 0;
+		mode_delay_5sec = millis() + 5000;
+	}
+	if (button_mode)
+	{
+		if (millis() > mode_delay_5sec)
+		{
+			button_mode_5s = 1;
+		}
+	}
 	//enter
-//	static unsigned long delay_3sec;
 	if (buttonStateChange[BUT_ENTER])
 	{
 		buttonStateChange[BUT_ENTER] = 0;
@@ -610,7 +676,19 @@ void scan_buttons()
 		{
 			// Serial.println(F("ENTER OFF"));
 			button_enter = 0;
-//			delay_3sec = millis() + 3000;
+		}
+	}
+	//press enter 5sec
+	if (!button_enter || button_plus || button_minus || button_mode)
+	{
+		button_enter_5s = 0;
+		enter_delay_5sec = millis() + 5000;
+	}
+	if (button_enter)
+	{
+		if (millis() > enter_delay_5sec)
+		{
+			button_enter_5s = 1;
 		}
 	}
 }

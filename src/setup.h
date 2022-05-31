@@ -44,6 +44,7 @@ typedef enum FLASH_MODE{
 	FLASH_DOWN,
 	FLASH_BOTH,
 	FLASH_NONE,
+	FLASH_INSTALL,
 } Flash_mode;
 
 typedef enum MODE{
@@ -51,6 +52,7 @@ typedef enum MODE{
 	MODE_DOWN,
 	MODE_BOTH,
 	MODE_NONE,
+	MODE_INSTALL,
 } Mode;
 
 typedef enum MENU{
@@ -59,7 +61,7 @@ typedef enum MENU{
 	MENU_DOWN,
 	MENU_BOTH,
 	MENU_STRETCHING,
-	MENU_INSTALL
+	MENU_INSTALL,
 } Menu;
 
 typedef enum PODMENU{
@@ -87,6 +89,7 @@ void scan_buttons();
 //bool select_mode(Control* ctrl);
 bool scan_change_mode(Control* ctrl);
 void flash_led(Flash_mode flash);
+void flash_install_led();
 void continous_flash_led(Flash_mode flash);
 void iwdg_reset();
 void check_reset_flag();
