@@ -48,6 +48,7 @@ volatile uint8_t button_minus = 0;
 volatile uint8_t button_enter = 0;
 volatile uint8_t button_enter_5s = 0;
 volatile uint8_t button_mode = 0;
+volatile uint8_t button_mode_fall = 0;
 volatile uint8_t button_mode_5s = 0;
 
 int incomingByte = 0;
@@ -490,17 +491,17 @@ void switch_menu_press_plus(Control* ctrl)
 
 bool scan_change_mode(Control* ctrl)
 {
-	if (button_mode)
+	if (button_mode_fall)
 	{
 		uint8_t mode = (uint8_t)ctrl->required_mode;
 		uint32_t time_end = millis() + 3000;
 		while (true)
 		{
 			IWDG_ReloadCounter();
-			if (button_mode)
+			if (button_mode_fall)
 			{
 				time_end = millis() + 3000;
-				button_mode = 0;
+				button_mode_fall = 0;
 				mode += 1;
 				if (mode >= 4)
 				{
@@ -510,6 +511,7 @@ bool scan_change_mode(Control* ctrl)
 			if (button_enter)
 			{
 				button_enter = 0;
+				button_mode_fall = 0;
 				if (mode == ctrl->required_mode)
 				{
 					return false;
@@ -524,6 +526,7 @@ bool scan_change_mode(Control* ctrl)
 			if (millis() > time_end || button_plus || button_minus)
 			{
 				continous_flash_led(ctrl->required_mode);
+				button_mode_fall = 0;
 				button_plus = 0;
 				button_minus = 0;
 				return false;
@@ -799,6 +802,7 @@ void scan_buttons()
 		{
 			// Serial.println(F("MINUS OFF"));
 			button_mode = 0;
+			button_mode_fall = 1;
 		}
 	}
 	//press mode 5sec
