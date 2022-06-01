@@ -9,12 +9,15 @@ uint8_t powr_on_after_install_door_close_cmd[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C,
 uint8_t door_open_cmd[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A, 0x57, 0x0D, 0x0A };
 uint8_t Menu_plus_to_UpmotorMenu_cmd[] = { 0x3F, 0x09, 0x44, 0x09, 0x52, 0x0D, 0x0A };
 uint8_t UpmotorMenu_enter_to_Upmotor_cmd[] = { 0x3F, 0x0D, 0x0A, 0x44, 0x0D, 0x0A };
+uint8_t HeaderUpmotor[] = { 0x44, 0x0D, 0x0A };
 uint8_t Upmotor_enter_to_UpmotorMenu_cmd[] = { 0x3F, 0x0D, 0x0A, 0x44, 0x0D, 0x0A, 0x52, 0x0D, 0x0A };
+uint8_t HeaderBottommotor[] = { 0x45, 0x0D, 0x0A };
 uint8_t Bottommotor_enter_to_BottommotorMenu_cmd[] = { 0x3F, 0x0D, 0x0A, 0x45, 0x0D, 0x0A, 0x52, 0x0D, 0x0A };
 uint8_t BottommotorMenu_enter_to_Bottommotor_cmd[] = { 0x3F, 0x0D, 0x0A, 0x45, 0x0D, 0x0A };
 uint8_t UpmotorMenu_plus_to_BottommotorMenu_cmd[] = { 0x3F, 0x09, 0x45, 0x09, 0x52, 0x0D, 0x0A };
 uint8_t BottommotorMenu_plus_to_BothmotorsMenu_cmd[] = { 0x3F, 0x09, 0x4B, 0x09, 0x52, 0x0D, 0x0A };
 uint8_t BothmotorsMenu_enter_to_Bothmotors_cmd[] = { 0x3F, 0x0D, 0x0A, 0x4B, 0x0D, 0x0A };
+uint8_t HeaderBothmotors[] = { 0x4B, 0x0D, 0x0A };
 uint8_t Bothmotors_enter_to_BothmotorsMenu_cmd[] = { 0x3F, 0x0D, 0x0A, 0x4B, 0x0D, 0x0A, 0x52, 0x0D, 0x0A };
 uint8_t Back_to_MainMenu_cmd[] = { 0x23, 0x09, 0x23, 0x0D, 0x0A, 0x21, 0x09, 0x3F, 0x09, 0x4E, 0x0D, 0x0A };
 uint8_t BothmotorsMenu_plus_to_ScrethingMenu_cmd[] = { 0x3F, 0x09, 0x53, 0x09, 0x52, 0x0D, 0x0A };
@@ -30,6 +33,7 @@ uint8_t DoorClose[] = { 0x55, 0x0D, 0x0A };
 uint8_t DoorOpen[] = { 0x57, 0x0D, 0x0A };
 uint8_t InstallMenu_enter_to_Install[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A, 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t Enter_Return[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
+uint8_t HeaderMotors[] = { 0x3F, 0x0D, 0x0A };
 
 uint8_t buttonMask[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
 uint8_t buttonOnLevel[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
@@ -74,7 +78,20 @@ void setup()  {
 
 void loop()  
 {
-	Control ctrl = {MODE_NONE, MENU_MENUE, false, false};
+	uint32_t time_delay;
+	uint32_t time_loop;
+	time_delay = millis() + 2000;
+	while (time_delay > millis())
+	{
+		scan_buttons();
+		IWDG_ReloadCounter();
+		if (button_mode)
+		{
+			time_delay = millis() + 2000;
+		}
+		
+	}
+	Control ctrl = {MODE_NONE, MENU_MENUE, false, false, false};
 	while (wait_connect_pult)
 	{
 		IWDG_ReloadCounter();
@@ -90,7 +107,6 @@ void loop()
 			LEDS_OFF;
 		}
 	}
-	uint32_t time_delay;
 	START_ON_VBUT;
 	time_delay = millis() + 372;
 	while (time_delay > millis())
@@ -120,11 +136,15 @@ void loop()
 		flash_led(ctrl.required_mode);
 	}
 	Serial_flush();
+	while (Serial_available() > 0) 
+	{
+		Serial_read();
+	}
 	Serial_write(0x23);
 	Serial_write(0x0D);
 	Serial_write(0x0A); 
-
-	uint32_t time_loop = 15000 + millis();
+	RESET_TIME_LOOP_15s;
+	Serial_flush();
 	power_on = 1;
 
 	while (true)
@@ -132,18 +152,14 @@ void loop()
 		while (power_on)
 		{
 			IWDG_ReloadCounter();
-			flash_led(ctrl.required_mode);
-			if (ctrl.current_menu == MENU_INSTALL)
-			{
-				start_emulate_press_enter_reset();
-			}			
+			flash_led(ctrl.required_mode);			
 			if (Serial_available() > 0) 
 			{
 				incomingByte = Serial_read(); // get the character
 				buf[buf_index++] = (uint8_t)incomingByte;
 				if (incomingByte == '\n') 
 				{
-					if (buf_cmp(buf, buf_index, pre_cmd, 5))
+					if (buf_cmp(buf, buf_index, pre_cmd, sizeof pre_cmd))
 					{
 						buf_index = 0;
 						Serial_flush();
@@ -181,6 +197,10 @@ void loop()
 						podmenu_install = 1;
 						break;
 					}
+					else
+					{
+						buf_index = 0;
+					}
 				}
 				if (buf_index >= SIZE_BUFFER)
 				{
@@ -217,6 +237,11 @@ void loop()
 						ctrl.current_menu = MENU_MENUE;
 						RESET_TIME_LOOP_15s;
 					}
+					//MOTORDS
+					else if (buf_cmp(buf, buf_index, HeaderMotors, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
 					//UP
 					else if (buf_cmp(buf, buf_index, Menu_plus_to_UpmotorMenu_cmd, 7))
 					{
@@ -243,7 +268,12 @@ void loop()
 						ctrl.exit_podmenu = false;
 						RESET_TIME_LOOP_15s;
 					}
+
 					//DOWN
+					else if (buf_cmp(buf, buf_index, HeaderBottommotor, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
 					else if (buf_cmp(buf, buf_index, UpmotorMenu_plus_to_BottommotorMenu_cmd, 7))
 					{
 						buf_index = 0; //Serial.println(F("DOWNMOTOR WITH ENTER RETURN or PLUS NEXT"));
@@ -270,6 +300,10 @@ void loop()
 						RESET_TIME_LOOP_15s;
 					}
 					//UP+DOWN
+					else if (buf_cmp(buf, buf_index, HeaderBothmotors, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
 					else if (buf_cmp(buf, buf_index, BottommotorMenu_plus_to_BothmotorsMenu_cmd, 7))
 					{
 						buf_index = 0; //Serial.println(F("BOTHMOTOR WITH ENTER RETURN or PLUS NEXT"));
@@ -277,7 +311,7 @@ void loop()
 						ctrl.current_menu = MENU_BOTH;
 						RESET_TIME_LOOP_15s;
 					}
-					if (ctrl.enter_podmenu && buf_cmp(buf, buf_index, BothmotorsMenu_enter_to_Bothmotors_cmd, 6))
+					else if (ctrl.enter_podmenu && buf_cmp(buf, buf_index, BothmotorsMenu_enter_to_Bothmotors_cmd, 6))
 					{
 						buf_index = 0; //Serial.println(F("BOTHMOTOR"));
 						Serial_flush();
@@ -311,6 +345,10 @@ void loop()
 						podmenu_install = 1;
 						menu = 0;
 						break;
+					}
+					else
+					{
+						buf_index = 0;
 					}
 				}
 			}
@@ -351,19 +389,58 @@ void loop()
 		while (podmenu_install)
 		{
 			IWDG_ReloadCounter();
-			flash_install_led();
 			scan_buttons();
 			if (button_mode_5s)
 			{
 				Serial_flush();
 				button_mode = 0;
-				ctrl.required_mode = MODE_UP;
-				ctrl.enter_podmenu = false;
-                ctrl.exit_podmenu = false;
-				podmenu_install = 0;
-				power_on = 1;
-				RESET_TIME_LOOP_15s;
-				break;
+				ctrl.reset_install = true;
+			}
+			if (ctrl.reset_install)
+			{
+				flash_install_reset_led();
+				start_emulate_press_enter_reset();
+			}
+			else
+			{
+				start_emulate_press_enter_install_mode();
+				flash_install_led();
+			}
+			if (Serial_available() > 0) 
+			{
+				incomingByte = Serial_read(); // get the character
+				buf[buf_index++] = (uint8_t)incomingByte;
+				if (incomingByte == '\n') 
+				{
+					if (buf_cmp(buf, buf_index, menu_cmd, 7))
+					{
+						buf_index = 0; // Serial.println(F("MENUE PLUS NEXT"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						while (true)
+						{
+							//reset
+						}
+					}
+					else if (buf_cmp(buf, buf_index, DoorClose, 3))
+					{
+						buf_index = 0; 
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						while (true)
+						{
+							//reset
+						}
+					}
+					else
+					{
+						buf_index = 0;
+					}
+				}
+				if (buf_index >= SIZE_BUFFER)
+				{
+					iwdg_reset(); // Serial.println(F("Buffer full"));
+				}
 			}
 		}
 	}
@@ -502,17 +579,33 @@ void start_emulate_press_enter()
 	}
 }
 
-void start_emulate_press_enter_reset()
+void start_emulate_press_enter_install_mode()
 {
-	static uint32_t press_on_enter_reset = 0;
-	static uint32_t loop_press_enter_reset = 0;
-	if (millis() > loop_press_enter_reset)
+	static uint32_t press_off = 0;
+	static uint32_t press_enter = 0;
+	if (millis() > press_enter)
 	{
 		ENTER_ON_VBUT; 
-		press_on_enter_reset = millis() + 3000;
-		loop_press_enter_reset = millis() + 5500;
+		press_off = millis() + 300;
+		press_enter = millis() + 5500;
 	}
-	if (millis() > press_on_enter_reset)
+	if (millis() > press_off)
+	{
+		ENTER_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
+	}
+}
+
+void start_emulate_press_enter_reset()
+{
+	static uint32_t on_enter_reset = 0;
+	static uint32_t enter_reset = 0;
+	if (millis() > enter_reset)
+	{
+		ENTER_ON_VBUT; 
+		on_enter_reset = millis() + 3000;
+		enter_reset = millis() + 5500;
+	}
+	if (millis() > on_enter_reset)
 	{
 		ENTER_OFF_VBUT; //digitalWrite(BUT_PLUS, LOW);
 	}
@@ -574,14 +667,41 @@ void iwdg_reset()
 	}
 }
 
-void flash_install_led()
+void flash_install_reset_led()
 {
 	static uint32_t time_on = 0;
 	if (millis() > time_on)
 	{
 		GPIO_WriteReverse(LED_GPIO_PORT, LED_DOWN_PIN);
 		GPIO_WriteReverse(LED_GPIO_PORT, LED_UP_PIN);
-		time_on = millis() + 700;
+		time_on = millis() + 100;
+	}
+}
+
+// void flash_install_led()
+// {
+// 	static uint32_t time_on = 0;
+// 	if (millis() > time_on)
+// 	{
+// 		GPIO_WriteReverse(LED_GPIO_PORT, LED_DOWN_PIN);
+// 		GPIO_WriteReverse(LED_GPIO_PORT, LED_UP_PIN);
+// 		time_on = millis() + 1000;
+// 	}
+// }
+
+void flash_install_led()
+{
+	static uint32_t time_off = 0;
+	static uint32_t start_loop = 0;
+	if (millis() > start_loop)
+	{
+		GPIO_WriteLow(LED_GPIO_PORT, LED_GPIO_PINS);
+		start_loop = millis() + 1200;
+		time_off = millis() + 50;
+	}
+	if (millis() > time_off)
+	{
+		GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
 	}
 }
 

@@ -77,6 +77,7 @@ typedef struct CONTROL{
 	Menu current_menu;
     bool enter_podmenu;
 	bool exit_podmenu;
+	bool reset_install;
 } Control;
 
 static void CLK_Config(void);
@@ -88,11 +89,13 @@ void scan_buttons();
 bool scan_change_mode(Control* ctrl);
 void flash_led(Flash_mode flash);
 void flash_install_led();
+void flash_install_reset_led();
 void continous_flash_led(Flash_mode flash);
 void iwdg_reset();
 void check_reset_flag();
 void switch_menu_press_plus(Control* ctrl);
 void start_emulate_press_enter();
 void start_emulate_press_enter_reset();
+void start_emulate_press_enter_install_mode();
 void emulate_plus_minus_press();
 bool buf_cmp(uint8_t* buf, uint8_t buflen, uint8_t* target, uint8_t tlen);
