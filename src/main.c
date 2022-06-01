@@ -31,6 +31,7 @@ uint8_t InstallMenu_enter_to_Stopped_SensorOn_cmd[] = { 0x3F, 0x09, 0x48, 0x0D, 
 uint8_t InstallMode[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t DoorClose[] = { 0x55, 0x0D, 0x0A };
 uint8_t DoorOpen[] = { 0x57, 0x0D, 0x0A };
+uint8_t HeaderInstallMenu[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A };
 uint8_t InstallMenu_enter_to_Install[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A, 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t Enter_Return[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t HeaderMotors[] = { 0x3F, 0x0D, 0x0A };
@@ -237,11 +238,6 @@ void loop()
 						ctrl.current_menu = MENU_MENUE;
 						RESET_TIME_LOOP_15s;
 					}
-					//MOTORDS
-					else if (buf_cmp(buf, buf_index, HeaderMotors, 3))
-					{
-						RESET_TIME_LOOP_15s;
-					}
 					//UP
 					else if (buf_cmp(buf, buf_index, Menu_plus_to_UpmotorMenu_cmd, 7))
 					{
@@ -268,12 +264,7 @@ void loop()
 						ctrl.exit_podmenu = false;
 						RESET_TIME_LOOP_15s;
 					}
-
 					//DOWN
-					else if (buf_cmp(buf, buf_index, HeaderBottommotor, 3))
-					{
-						RESET_TIME_LOOP_15s;
-					}
 					else if (buf_cmp(buf, buf_index, UpmotorMenu_plus_to_BottommotorMenu_cmd, 7))
 					{
 						buf_index = 0; //Serial.println(F("DOWNMOTOR WITH ENTER RETURN or PLUS NEXT"));
@@ -300,10 +291,6 @@ void loop()
 						RESET_TIME_LOOP_15s;
 					}
 					//UP+DOWN
-					else if (buf_cmp(buf, buf_index, HeaderBothmotors, 3))
-					{
-						RESET_TIME_LOOP_15s;
-					}
 					else if (buf_cmp(buf, buf_index, BottommotorMenu_plus_to_BothmotorsMenu_cmd, 7))
 					{
 						buf_index = 0; //Serial.println(F("BOTHMOTOR WITH ENTER RETURN or PLUS NEXT"));
@@ -345,6 +332,31 @@ void loop()
 						podmenu_install = 1;
 						menu = 0;
 						break;
+					}
+					//HEAD MOTORDS
+					else if (buf_cmp(buf, buf_index, HeaderMotors, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
+					//HEAD UP
+					else if (buf_cmp(buf, buf_index, HeaderUpmotor, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
+					//HEAD DOWN
+					else if (buf_cmp(buf, buf_index, HeaderBottommotor, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
+					//HEAD BOTH
+					else if (buf_cmp(buf, buf_index, HeaderBothmotors, 3))
+					{
+						RESET_TIME_LOOP_15s;
+					}
+					//HEAD INSTALL
+					else if (buf_cmp(buf, buf_index, HeaderInstallMenu, 5))
+					{
+						RESET_TIME_LOOP_15s;
 					}
 					else
 					{
