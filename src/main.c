@@ -46,7 +46,8 @@ volatile uint8_t buttonStateChange[BUTTON_COUNT] = { 0 };
 volatile uint8_t button_plus = 0;
 volatile uint8_t button_minus = 0;
 volatile uint8_t button_enter = 0;
-volatile uint8_t button_enter_5s = 0;
+volatile uint8_t button_enter_3s = 0;
+volatile uint8_t button_mode_enter_reset_3s = 0;
 volatile uint8_t button_mode = 0;
 volatile uint8_t button_mode_fall = 0;
 volatile uint8_t button_mode_5s = 0;
@@ -82,6 +83,7 @@ void loop()
 {
 	uint32_t time_delay;
 	uint32_t time_loop;
+    uint32_t time_loop_podmenu;
 	time_delay = millis() + 2000;
 	while (time_delay > millis())
 	{
@@ -252,6 +254,7 @@ void loop()
 						buf_index = 0; //Serial.println(F("UPMOTOR"));
 						Serial_flush();
 						ENTER_OFF_VBUT;
+                        RESET_TIME_PODMENU_30m;
 						podmenu_motors = 1;
 						menu = 0;
 						break;
@@ -278,6 +281,7 @@ void loop()
 						buf_index = 0; //Serial.println(F("DOWNMOTOR"));
 						Serial_flush();
 						ENTER_OFF_VBUT;
+                        RESET_TIME_PODMENU_30m;
 						podmenu_motors = 1;
 						menu = 0;
 						break;
@@ -304,6 +308,7 @@ void loop()
 						buf_index = 0; //Serial.println(F("BOTHMOTOR"));
 						Serial_flush();
 						ENTER_OFF_VBUT;
+                        RESET_TIME_PODMENU_30m;
 						podmenu_motors = 1;
 						menu = 0;
 						break;
@@ -372,7 +377,21 @@ void loop()
 			IWDG_ReloadCounter();
 		 	continous_flash_led(ctrl.required_mode);
 		 	scan_buttons();
-			emulate_plus_minus_press();
+            if (emulate_plus_minus_press())
+            {
+                RESET_TIME_PODMENU_30m;
+            }
+            if (millis() > time_loop_podmenu)
+		 	{ 
+				iwdg_reset(); // Serial.println(F("Time read end. Restart"));
+	 		}
+            if (button_mode_enter_reset_3s)
+            {
+                while (true)
+                {
+                    flash_reset_led();
+                }
+            }
             if (scan_change_mode(&ctrl))
             {
                 Serial_flush();
@@ -384,7 +403,7 @@ void loop()
 				RESET_TIME_LOOP_15s;
                 break;
             }
-			if (button_enter_5s)
+			if (button_enter_3s)
 			{
 				Serial_flush();
                 OUT_PIN_OFF;
@@ -411,7 +430,7 @@ void loop()
 			}
 			if (ctrl.reset_install)
 			{
-				flash_install_reset_led();
+				flash_reset_led();
 				start_emulate_press_enter_reset();
 			}
 			else
@@ -558,10 +577,12 @@ bool buf_cmp(uint8_t* buf, uint8_t buflen, uint8_t* target, uint8_t tlen)
     return true;
 }
 
-void emulate_plus_minus_press()
+bool emulate_plus_minus_press()
 {	
+    bool ret = false;
 	if (button_plus)
 	{
+        ret = true;
 		GPIO_WriteLow(OUT_GPIO_PORT, OUT_PLUS_PIN); //digitalWrite(BUT_PLUS, HIGH);
 	}
 	else
@@ -570,12 +591,14 @@ void emulate_plus_minus_press()
 	}
 	if (button_minus)
 	{
+        ret = true;
 		GPIO_WriteLow(OUT_GPIO_PORT, OUT_MINUS_PIN); //digitalWrite(BUT_MINUS, HIGH);
 	}
 	else
 	{
 		GPIO_WriteHigh(OUT_GPIO_PORT, OUT_MINUS_PIN); //digitalWrite(BUT_MINUS, LOW);
 	}
+    return ret;
 }
 
 void start_emulate_press_enter()
@@ -682,7 +705,7 @@ void iwdg_reset()
 	}
 }
 
-void flash_install_reset_led()
+void flash_reset_led()
 {
 	static uint32_t time_on = 0;
 	if (millis() > time_on)
@@ -692,17 +715,6 @@ void flash_install_reset_led()
 		time_on = millis() + 100;
 	}
 }
-
-// void flash_install_led()
-// {
-// 	static uint32_t time_on = 0;
-// 	if (millis() > time_on)
-// 	{
-// 		GPIO_WriteReverse(LED_GPIO_PORT, LED_DOWN_PIN);
-// 		GPIO_WriteReverse(LED_GPIO_PORT, LED_UP_PIN);
-// 		time_on = millis() + 1000;
-// 	}
-// }
 
 void flash_install_led()
 {
@@ -753,8 +765,9 @@ void flash_led(Flash_mode flash)
 
 void scan_buttons()
 {
-	static unsigned long enter_delay_5sec = 0xFFFF;
-	static unsigned long mode_delay_5sec = 0xFFFF;
+    static unsigned long mode_enter_delay_3sec = 0xFFFF;
+	static unsigned long enter_delay_3sec = 0xFFFF;
+	//static unsigned long mode_delay_3sec = 0xFFFF;
 	for (uint8_t i = 0; i < BUTTON_COUNT; i++)
 	{
 		getButtonState(i); 
@@ -805,19 +818,19 @@ void scan_buttons()
 			button_mode_fall = 1;
 		}
 	}
-	//press mode 5sec
-	if (!button_mode || button_plus || button_minus || button_enter)
-	{
-		button_mode_5s = 0;
-		mode_delay_5sec = millis() + DELAY_PRESS;
-	}
-	if (button_mode)
-	{
-		if (millis() > mode_delay_5sec)
-		{
-			button_mode_5s = 1;
-		}
-	}
+	//press mode 3sec
+	// if (!button_mode || button_plus || button_minus || button_enter)
+	// {
+	// 	button_mode_5s = 0;
+	// 	mode_delay_3sec = millis() + DELAY_PRESS;
+	// }
+	// if (button_mode)
+	// {
+	// 	if (millis() > mode_delay_3sec)
+	// 	{
+	// 		button_mode_5s = 1;
+	// 	}
+	// }
 	//enter
 	if (buttonStateChange[BUT_ENTER])
 	{
@@ -833,17 +846,28 @@ void scan_buttons()
 			button_enter = 0;
 		}
 	}
-	//press enter 5sec
+    //mode+enter
+    if (button_enter && button_mode)
+    {
+        button_mode_enter_reset_3s = 1;
+    }
+    else
+    {
+        button_mode_enter_reset_3s = 0;
+        mode_enter_delay_3sec = millis() + DELAY_PRESS;
+    }
+    
+	//press enter 3sec
 	if (!button_enter || button_plus || button_minus || button_mode)
 	{
-		button_enter_5s = 0;
-		enter_delay_5sec = millis() + DELAY_PRESS;
+		button_enter_3s = 0;
+		enter_delay_3sec = millis() + DELAY_PRESS;
 	}
 	if (button_enter)
 	{
-		if (millis() > enter_delay_5sec)
+		if (millis() > enter_delay_3sec)
 		{
-			button_enter_5s = 1;
+			button_enter_3s = 1;
 		}
 	}
 }
