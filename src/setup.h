@@ -38,7 +38,7 @@
 #define OUT_PIN_OFF (GPIO_WriteHigh(OUT_GPIO_PORT, OUT_GPIO_PINS))
 #define RESET_TIME_LOOP_10s (time_loop = millis() + 10000)
 #define RESET_TIME_LOOP_15s (time_loop = millis() + 15000)
-#define RESET_TIME_PODMENU_30m (time_loop_podmenu = millis() + 30000)
+#define RESET_TIME_PODMENU_30m (time_loop_podmenu = millis() + 1800000UL)
 #define DELAY_PRESS 3000
 
 typedef enum FLASH_MODE{

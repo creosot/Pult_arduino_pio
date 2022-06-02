@@ -84,6 +84,7 @@ void loop()
 	uint32_t time_delay;
 	uint32_t time_loop;
     uint32_t time_loop_podmenu;
+	RESET_TIME_PODMENU_30m;
 	time_delay = millis() + 2000;
 	while (time_delay > millis())
 	{
@@ -93,8 +94,8 @@ void loop()
 		{
 			time_delay = millis() + 2000;
 		}
-		
 	}
+	button_mode_fall = 0;
 	Control ctrl = {MODE_NONE, MENU_MENUE, false, false, false};
 	while (wait_connect_pult)
 	{
@@ -422,10 +423,10 @@ void loop()
 		{
 			IWDG_ReloadCounter();
 			scan_buttons();
-			if (button_mode_5s)
+			if (button_mode_enter_reset_3s) //button_mode_5s)
 			{
 				Serial_flush();
-				button_mode = 0;
+				button_mode_enter_reset_3s = 0;
 				ctrl.reset_install = true;
 			}
 			if (ctrl.reset_install)
@@ -444,6 +445,7 @@ void loop()
 				buf[buf_index++] = (uint8_t)incomingByte;
 				if (incomingByte == '\n') 
 				{
+					//RESET NSTALL
 					if (buf_cmp(buf, buf_index, menu_cmd, 7))
 					{
 						buf_index = 0; // Serial.println(F("MENUE PLUS NEXT"));
@@ -454,7 +456,18 @@ void loop()
 							//reset
 						}
 					}
-					else if (buf_cmp(buf, buf_index, DoorClose, 3))
+					//CLOSE, 
+					// else if (buf_cmp(buf, buf_index, DoorClose, 3))
+					// {
+					// 	buf_index = 0; 
+					// 	Serial_flush();
+					// 	ENTER_OFF_VBUT;
+					// 	while (true)
+					// 	{
+					// 		//reset
+					// 	}
+					// }
+					else if (buf_cmp(buf, buf_index, HeaderInstallMenu, 5))
 					{
 						buf_index = 0; 
 						Serial_flush();
