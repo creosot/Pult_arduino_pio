@@ -29,6 +29,7 @@ uint8_t DoorOpen_enter_3sec_to_MainMenu_cmd[] = { 0x23, 0x09, 0x23, 0x0D, 0x0A, 
 uint8_t DoorOpen_enter_s_on_to_scrolling_cmd[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A };
 uint8_t InstallMenu_enter_to_Stopped_SensorOn_cmd[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A, 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A, 0x55, 0x0D, 0x0A };
 uint8_t InstallMode[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
+uint8_t InstallMode_DoorClose[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A, 0x55, 0x0D, 0x0A };
 uint8_t DoorClose[] = { 0x55, 0x0D, 0x0A };
 uint8_t DoorOpen[] = { 0x57, 0x0D, 0x0A };
 uint8_t HeaderInstallMenu[] = { 0x3F, 0x09, 0x48, 0x0D, 0x0A };
@@ -96,7 +97,7 @@ void loop()
 		}
 	}
 	button_mode_fall = 0;
-	Control ctrl = {MODE_NONE, MENU_MENUE, false, false, false};
+	Control ctrl = {MODE_NONE, MENU_MENUE, false, false, false, false};
 	while (wait_connect_pult)
 	{
 		IWDG_ReloadCounter();
@@ -411,6 +412,8 @@ void loop()
 				LED_UP_ON;
 				LED_DOWN_OFF;	
 				ctrl.required_mode = MODE_INSTALL;
+				ctrl.reset_install = false;
+				ctrl.start_install = true;
 				ctrl.enter_podmenu = false;
                 ctrl.exit_podmenu = true;
                 podmenu_motors = 0;
@@ -436,7 +439,10 @@ void loop()
 			}
 			else
 			{
-				start_emulate_press_enter_install_mode();
+				if (ctrl.start_install)
+				{
+					start_emulate_press_enter_install_mode();
+				}
 				flash_install_led();
 			}
 			if (Serial_available() > 0) 
@@ -456,8 +462,17 @@ void loop()
 							//reset
 						}
 					}
-					//CLOSE, 
-					// else if (buf_cmp(buf, buf_index, DoorClose, 3))
+					else if (buf_cmp(buf, buf_index, InstallMode_DoorClose, 10))
+					{
+						buf_index = 0; 
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						while (true)
+						{
+							//reset
+						}
+					}
+					// else if (buf_cmp(buf, buf_index, HeaderInstallMenu, 5))
 					// {
 					// 	buf_index = 0; 
 					// 	Serial_flush();
@@ -467,15 +482,9 @@ void loop()
 					// 		//reset
 					// 	}
 					// }
-					else if (buf_cmp(buf, buf_index, HeaderInstallMenu, 5))
+					else if (buf_cmp(buf, buf_index, InstallMode, 7))
 					{
-						buf_index = 0; 
-						Serial_flush();
-						ENTER_OFF_VBUT;
-						while (true)
-						{
-							//reset
-						}
+	
 					}
 					else
 					{

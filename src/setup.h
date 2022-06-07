@@ -79,6 +79,7 @@ typedef struct CONTROL{
     bool enter_podmenu;
 	bool exit_podmenu;
 	bool reset_install;
+	bool start_install;
 } Control;
 
 static void CLK_Config(void);
