@@ -197,8 +197,9 @@ void loop()
 						Serial_flush();
 						ENTER_OFF_VBUT;
 						ctrl.current_menu = MENU_INSTALL;
-						LED_UP_ON;
-						LED_DOWN_OFF;
+						//LED_UP_ON;
+						//LED_DOWN_OFF;
+						LEDS_OFF;
 						power_on = 0;
 						podmenu_install = 1;
 						break;
@@ -337,6 +338,7 @@ void loop()
 						buf_index = 0; //Serial.println(F("INSTALL"));
 						Serial_flush();
 						ENTER_OFF_VBUT;
+						LEDS_OFF;
 						podmenu_install = 1;
 						menu = 0;
 						break;
@@ -391,7 +393,7 @@ void loop()
             {
                 while (true)
                 {
-                    flash_reset_led();
+                    flash_reset_plus_minus_led();
                 }
             }
             if (scan_change_mode(&ctrl))
@@ -409,8 +411,9 @@ void loop()
 			{
 				Serial_flush();
                 OUT_PIN_OFF;
-				LED_UP_ON;
-				LED_DOWN_OFF;	
+				//LED_UP_ON;
+				//LED_DOWN_OFF;	
+				LEDS_OFF;
 				ctrl.required_mode = MODE_INSTALL;
 				ctrl.reset_install = false;
 				ctrl.start_install = true;
@@ -434,7 +437,7 @@ void loop()
 			}
 			if (ctrl.reset_install)
 			{
-				flash_reset_led();
+				flash_reset_install_led();
 				start_emulate_press_enter_reset();
 			}
 			else
@@ -443,7 +446,8 @@ void loop()
 				{
 					start_emulate_press_enter_install_mode();
 				}
-				flash_install_led();
+				LED_INSTALL_ON;
+				//flash_install_led();
 			}
 			if (Serial_available() > 0) 
 			{
@@ -683,8 +687,8 @@ void continous_flash_led(Flash_mode flash)
 		LED_DOWN_ON;
 		LED_UP_OFF;
 		return;
-	case FLASH_BOTH:
-		LEDS_ON;
+	case FLASH_PLUS_MINUS:
+		LED_PLUS_MINUS_ON;
 		return;
 	case FLASH_NONE:
 		LEDS_OFF;
@@ -727,7 +731,7 @@ void iwdg_reset()
 	}
 }
 
-void flash_reset_led()
+void flash_reset_plus_minus_led()
 {
 	static uint32_t time_on = 0;
 	if (millis() > time_on)
@@ -738,19 +742,30 @@ void flash_reset_led()
 	}
 }
 
+void flash_reset_install_led()
+{
+	static uint32_t time_on = 0;
+	if (millis() > time_on)
+	{
+		GPIO_WriteReverse(LED_GPIO_PORT, LED_INSTALL_PIN);
+		//GPIO_WriteReverse(LED_GPIO_PORT, LED_UP_PIN);
+		time_on = millis() + 100;
+	}
+}
+
 void flash_install_led()
 {
 	static uint32_t time_off = 0;
 	static uint32_t start_loop = 0;
 	if (millis() > start_loop)
 	{
-		GPIO_WriteLow(LED_GPIO_PORT, LED_GPIO_PINS);
+		GPIO_WriteLow(LED_GPIO_PORT, LED_INSTALL_PIN);
 		start_loop = millis() + 1200;
 		time_off = millis() + 50;
 	}
 	if (millis() > time_off)
 	{
-		GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
+		GPIO_WriteHigh(LED_GPIO_PORT, LED_INSTALL_PIN);
 	}
 }
 
@@ -769,14 +784,14 @@ void flash_led(Flash_mode flash)
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_DOWN_PIN);
 			GPIO_WriteHigh(LED_GPIO_PORT, LED_UP_PIN);
 			break;
-		case FLASH_BOTH:
-			GPIO_WriteReverse(LED_GPIO_PORT, LED_GPIO_PINS);
+		case FLASH_PLUS_MINUS:
+			GPIO_WriteReverse(LED_GPIO_PORT, LED_PLUS_MINUS_GPIO_PINS);
 			break;
 		case FLASH_NONE:
 			GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
 			break;
 		case FLASH_INSTALL:
-			GPIO_WriteReverse(LED_GPIO_PORT, LED_GPIO_PINS);
+			GPIO_WriteReverse(LED_GPIO_PORT, LED_INSTALL_PIN);
 			break;
 		default:
 			break;

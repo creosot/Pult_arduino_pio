@@ -2,7 +2,9 @@
 #define BUTTON_GPIO_PORT  (GPIOB)
 #define BUTTON_GPIO_PINS  (GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_0)
 #define LED_GPIO_PORT  (GPIOC)
-#define LED_GPIO_PINS  (GPIO_PIN_2 | GPIO_PIN_1)
+#define LED_PLUS_MINUS_GPIO_PINS  (GPIO_PIN_2 | GPIO_PIN_1 )
+//red
+#define LED_GPIO_PINS  (GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_4)
 
 #define OUT_GPIO_PORT  (GPIOD)
 #define OUT_GPIO_PINS  (GPIO_PIN_7 | GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_0)
@@ -12,19 +14,25 @@
 #define OUT_MINUS_PIN (GPIO_PIN_4)
 #define OUT_ENTER_PIN (GPIO_PIN_7)
 
+//red
+#define LED_INSTALL_PIN (GPIO_PIN_4) //led3
+#define LED_INSTALL_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_INSTALL_PIN))
+
 #define BUTTON_COUNT	4
 #define DEBOUNCE_ms 50
 #define GERKON_GPIO_PORT (GPIOC)
 #define GERKON_PIN (GPIO_PIN_4)
-#define LED_UP_PIN (GPIO_PIN_1)
-#define LED_DOWN_PIN (GPIO_PIN_2)
-#define BUT_MODE 0
-#define BUT_MINUS 1
-#define BUT_PLUS 2
-#define BUT_ENTER 3
+#define LED_UP_PIN (GPIO_PIN_1) //led1
+#define LED_DOWN_PIN (GPIO_PIN_2) //led2
+#define BUT_MODE 0 //but4
+#define BUT_MINUS 1 //but1
+#define BUT_PLUS 2 //but2
+#define BUT_ENTER 3 //but3
 #define SIZE_BUFFER 100
 #define LEDS_OFF (GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS))
 #define LEDS_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_GPIO_PINS))
+#define LED_PLUS_MINUS_OFF (GPIO_WriteHigh(LED_GPIO_PORT, LED_PLUS_MINUS_GPIO_PINS))
+#define LED_PLUS_MINUS_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_PLUS_MINUS_GPIO_PINS))
 #define LED_UP_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_UP_PIN))
 #define LED_UP_OFF (GPIO_WriteHigh(LED_GPIO_PORT, LED_UP_PIN))
 #define LED_DOWN_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_DOWN_PIN))
@@ -44,7 +52,7 @@
 typedef enum FLASH_MODE{
 	FLASH_UP = 1,
 	FLASH_DOWN,
-	FLASH_BOTH,
+	FLASH_PLUS_MINUS,
 	FLASH_NONE,
 	FLASH_INSTALL,
 } Flash_mode;
@@ -91,7 +99,8 @@ void scan_buttons();
 bool scan_change_mode(Control* ctrl);
 void flash_led(Flash_mode flash);
 void flash_install_led();
-void flash_reset_led();
+void flash_reset_plus_minus_led();
+void flash_reset_install_led();
 void continous_flash_led(Flash_mode flash);
 void iwdg_reset();
 void check_reset_flag();
