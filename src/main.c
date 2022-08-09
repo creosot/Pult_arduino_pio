@@ -338,7 +338,17 @@ void loop()
 						buf_index = 0; //Serial.println(F("INSTALL"));
 						Serial_flush();
 						ENTER_OFF_VBUT;
-						LEDS_OFF;
+						LED_INSTALL_ON;
+						// uint32_t seven_sec = millis() + 70000;
+						// while (seven_sec > millis())
+						// {
+						// 	IWDG_ReloadCounter();
+						// }
+						while (true)
+						{
+							IWDG_ReloadCounter();
+						}
+						//LEDS_OFF;
 						podmenu_install = 1;
 						menu = 0;
 						break;
