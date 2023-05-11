@@ -38,7 +38,8 @@ uint8_t Enter_Return[] = { 0x21, 0x09, 0x3F, 0x09, 0x4C, 0x0D, 0x0A };
 uint8_t HeaderMotors[] = { 0x3F, 0x0D, 0x0A };
 
 uint8_t buttonMask[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
-uint8_t buttonOnLevel[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
+// uint8_t buttonOnLevel[BUTTON_COUNT] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
+uint8_t buttonOnLevel[BUTTON_COUNT] = { 0, 0, 0, 0 };
 volatile uint8_t buttonCurrentState[BUTTON_COUNT] = { 0, 0, 0, 0 };
 volatile uint32_t lastDebounceTime[BUTTON_COUNT] = { 0, 0, 0, 0 };
 volatile uint8_t buttonStateOFF[BUTTON_COUNT] = { 0, 0, 0, 0 };
@@ -71,6 +72,18 @@ void setup()  {
 	CLK_Config();
 	IWDG_Config();
   	GPIO_Config();
+	//TEST_LED;
+	// while (1)
+	// {
+	// 	LEDS_OFF;
+	// 	scan_buttons();
+	// 	if (button_plus)
+	// 	{
+	// 		LEDS_ON;
+	// 	}
+	// 	IWDG_ReloadCounter();
+	// }
+	GPIO_WriteHigh(LED_GPIO_PORT, REZ_LED_GPIO_PINS);
 	IWDG_ReloadCounter();  
 	EEPROM_Config();
 	IWDG_ReloadCounter();
@@ -96,6 +109,8 @@ void loop()
 			time_delay = millis() + 2000;
 		}
 	}
+	GPIO_WriteLow(LED_GPIO_PORT, REZ_LED_GPIO_PINS);
+	
 	button_mode_fall = 0;
 	Control ctrl = {MODE_NONE, MENU_MENUE, false, false, false, false};
 	while (wait_connect_pult)
@@ -113,6 +128,8 @@ void loop()
 			LEDS_OFF;
 		}
 	}
+	LOCK;
+
 	START_ON_VBUT;
 	time_delay = millis() + 372;
 	while (time_delay > millis())
@@ -719,7 +736,7 @@ void check_reset_flag()
 			IWDG_ReloadCounter();
 			if (millis() > time_on)
 			{
-				GPIO_WriteReverse(LED_GPIO_PORT, LED_GPIO_PINS);
+				GPIO_WriteReverse(LED_GPIO_PORT, PULT_LED_GPIO_PINS);
 				time_on = millis() + 60;
 			}
 		}
@@ -730,12 +747,12 @@ void check_reset_flag()
 void iwdg_reset()
 {
 	uint32_t time_on = 0;
-	GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
+	GPIO_WriteHigh(LED_GPIO_PORT, PULT_LED_GPIO_PINS);
 	while (true)
 	{
 		if (millis() > time_on)
 		{
-			GPIO_WriteReverse(LED_GPIO_PORT, LED_GPIO_PINS);
+			GPIO_WriteReverse(LED_GPIO_PORT, PULT_LED_GPIO_PINS);
 			time_on = millis() + 60;
 		}
 	}
@@ -798,7 +815,7 @@ void flash_led(Flash_mode flash)
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_PLUS_MINUS_GPIO_PINS);
 			break;
 		case FLASH_NONE:
-			GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
+			GPIO_WriteHigh(LED_GPIO_PORT, PULT_LED_GPIO_PINS);
 			break;
 		case FLASH_INSTALL:
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_INSTALL_PIN);
@@ -967,8 +984,11 @@ static void GPIO_Config()
   	GPIO_Init(BUTTON_GPIO_PORT, (GPIO_Pin_TypeDef)BUTTON_GPIO_PINS, GPIO_MODE_IN_FL_NO_IT);
   	//led
   	GPIO_DeInit(GPIOC);
-  	GPIO_Init(LED_GPIO_PORT, (GPIO_Pin_TypeDef)LED_GPIO_PINS, GPIO_MODE_OUT_PP_LOW_FAST);
-  	GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
+  	// GPIO_Init(LED_GPIO_PORT, (GPIO_Pin_TypeDef)LED_GPIO_PINS, GPIO_MODE_OUT_PP_LOW_FAST);
+  	// GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
+	//rezonit
+	GPIO_Init(LED_GPIO_PORT, (GPIO_Pin_TypeDef)REZ_LED_GPIO_PINS, GPIO_MODE_OUT_PP_LOW_FAST);
+  	GPIO_WriteLow(LED_GPIO_PORT, REZ_LED_GPIO_PINS);
   	//gerkon in
   	//GPIO_Init(GERKON_GPIO_PORT, (GPIO_Pin_TypeDef)GERKON_PIN, GPIO_MODE_IN_FL_NO_IT);
   	//out to block stiboard
