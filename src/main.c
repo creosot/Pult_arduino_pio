@@ -52,6 +52,7 @@ volatile uint8_t button_enter_3s = 0;
 volatile uint8_t button_mode_enter_reset_3s = 0;
 volatile uint8_t button_mode = 0;
 volatile uint8_t button_mode_fall = 0;
+volatile uint8_t button_enter_release = 0;
 volatile uint8_t button_mode_5s = 0;
 
 int incomingByte = 0;
@@ -66,24 +67,13 @@ uint8_t scretching_menu = 0;
 uint8_t install_door_open = 0;
 uint8_t install_door_close = 0;
 uint8_t podmenu_install = 0;
+uint8_t reset_install = 0;
 uint8_t door_open = 0;
 
 void setup()  {
 	CLK_Config();
 	IWDG_Config();
   	GPIO_Config();
-	//TEST_LED;
-	// while (1)
-	// {
-	// 	LEDS_OFF;
-	// 	scan_buttons();
-	// 	if (button_plus)
-	// 	{
-	// 		LEDS_ON;
-	// 	}
-	// 	IWDG_ReloadCounter();
-	// }
-	GPIO_WriteHigh(LED_GPIO_PORT, REZ_LED_GPIO_PINS);
 	IWDG_ReloadCounter();  
 	EEPROM_Config();
 	IWDG_ReloadCounter();
@@ -100,36 +90,39 @@ void loop()
     uint32_t time_loop_podmenu;
 	RESET_TIME_PODMENU_30m;
 	time_delay = millis() + 2000;
-	while (time_delay > millis())
+	LEDS_ON;
+	while (time_delay > millis()) //delay for button no press
 	{
 		scan_buttons();
 		IWDG_ReloadCounter();
-		if (button_mode)
+		if (button_enter || button_plus || button_minus || button_mode)
 		{
 			time_delay = millis() + 2000;
 		}
 	}
-	GPIO_WriteLow(LED_GPIO_PORT, REZ_LED_GPIO_PINS);
-	
+	LEDS_OFF;
 	button_mode_fall = 0;
+	button_enter_release = 0;
+	//TEST_LED;
 	Control ctrl = {MODE_NONE, MENU_MENUE, false, false, false, false};
-	while (wait_connect_pult)
+	// while (wait_connect_pult)
+	while (true)
 	{
 		IWDG_ReloadCounter();
 		scan_buttons();
+		flash_led(ctrl.required_mode);
 		if (scan_change_mode(&ctrl))
 		{
-			flash_led(ctrl.required_mode);
-			wait_connect_pult = false;
+			//flash_led(ctrl.required_mode);
+			//wait_connect_pult = false;
 			break;
 		}
-		else
-		{
-			LEDS_OFF;
-		}
+		// else
+		// {
+		// 	LEDS_OFF;
+		// }
 	}
-	LOCK;
-
+	//LOCK;
 	START_ON_VBUT;
 	time_delay = millis() + 372;
 	while (time_delay > millis())
@@ -205,7 +198,16 @@ void loop()
 						ctrl.current_menu = MENU_MENUE;
 						power_on = 0;
 						menu = 1;
+						LED_INSTALL_ON;
+						LED_GREEN_ON;
+						time_delay = millis() + 1000;
+						while (time_delay > millis())
+						{
+							IWDG_ReloadCounter();
+							flash_led(ctrl.required_mode);
+						}
 						RESET_TIME_LOOP_15s;
+						LEDS_OFF;
 						break;
 					}
 					else if (buf_cmp(buf, buf_index, InstallMode, 7))
@@ -214,11 +216,12 @@ void loop()
 						Serial_flush();
 						ENTER_OFF_VBUT;
 						ctrl.current_menu = MENU_INSTALL;
-						//LED_UP_ON;
-						//LED_DOWN_OFF;
-						LEDS_OFF;
 						power_on = 0;
-						podmenu_install = 1;
+						//podmenu_install = 1;
+						reset_install = 1;
+						RESET_TIME_LOOP_30s;
+						LEDS_OFF;
+						LED_INSTALL_ON;
 						break;
 					}
 					else
@@ -355,19 +358,22 @@ void loop()
 						buf_index = 0; //Serial.println(F("INSTALL"));
 						Serial_flush();
 						ENTER_OFF_VBUT;
+						LEDS_OFF;
 						LED_INSTALL_ON;
-						// uint32_t seven_sec = millis() + 70000;
-						// while (seven_sec > millis())
-						// {
-						// 	IWDG_ReloadCounter();
-						// }
+						//time_delay = millis() + 1000;
 						while (true)
 						{
 							IWDG_ReloadCounter();
+							// if (millis() > time_delay)
+							// {
+							// 	LEDS_OFF;
+							// }
 						}
+
+						
 						//LEDS_OFF;
-						podmenu_install = 1;
-						menu = 0;
+						// podmenu_install = 1;
+						// menu = 0;
 						break;
 					}
 					//HEAD MOTORDS
@@ -416,13 +422,16 @@ void loop()
 		 	{ 
 				iwdg_reset(); // Serial.println(F("Time read end. Restart"));
 	 		}
-            if (button_mode_enter_reset_3s)
-            {
-                while (true)
-                {
-                    flash_reset_plus_minus_led();
-                }
-            }
+            // if (button_mode_enter_reset_3s)
+            // {
+			// 	LED_PLUS_MINUS_OFF;
+			// 	LED_GREEN_OFF;
+			// 	LED_INSTALL_ON;
+            //     while (true)
+            //     {
+            //         //flash_reset_plus_minus_led();
+            //     }
+            // }
             if (scan_change_mode(&ctrl))
             {
                 Serial_flush();
@@ -452,30 +461,90 @@ void loop()
                 break;
 			}
 		}
+
+		while (reset_install)
+		{
+			IWDG_ReloadCounter();
+			//scan_buttons();
+			flash_reset_install_led();
+			start_emulate_press_enter_reset();
+			if (Serial_available() > 0) 
+			{
+				incomingByte = Serial_read(); // get the character
+				buf[buf_index++] = (uint8_t)incomingByte;
+				if (incomingByte == '\n') 
+				{
+					//RESET NSTALL
+					if (buf_cmp(buf, buf_index, menu_cmd, 7))
+					{
+						buf_index = 0; // Serial.println(F("MENUE PLUS NEXT"));
+						Serial_flush();
+						ENTER_OFF_VBUT;
+						ctrl.current_menu = MENU_MENUE;
+						reset_install = 0;
+						menu = 1;
+						LEDS_OFF;
+						LED_INSTALL_ON;
+						LED_GREEN_ON;
+						time_delay = millis() + 1000;
+						while (time_delay > millis())
+						{
+							IWDG_ReloadCounter();
+							flash_led(ctrl.required_mode);
+						}
+						RESET_TIME_LOOP_15s;
+						LEDS_OFF;
+						break;
+					}
+					else
+					{
+						buf_index = 0;
+					}
+				}
+				if (buf_index >= SIZE_BUFFER)
+				{
+					iwdg_reset(); // Serial.println(F("Buffer full"));
+				}
+			}
+			if (millis() > time_loop)
+			{ 
+				iwdg_reset(); // Serial.println(F("Time read end. Restart"));
+			}
+		}
+		
 		while (podmenu_install)
 		{
 			IWDG_ReloadCounter();
-			scan_buttons();
-			if (button_mode_enter_reset_3s) //button_mode_5s)
-			{
-				Serial_flush();
-				button_mode_enter_reset_3s = 0;
-				ctrl.reset_install = true;
-			}
-			if (ctrl.reset_install)
-			{
-				flash_reset_install_led();
-				start_emulate_press_enter_reset();
-			}
-			else
-			{
-				if (ctrl.start_install)
-				{
-					start_emulate_press_enter_install_mode();
-				}
-				LED_INSTALL_ON;
-				//flash_install_led();
-			}
+			// scan_buttons();
+			// if (button_enter_3s) //button_mode_5s)
+			// {
+			// 	Serial_flush();
+			// 	button_enter_3s = 0;
+			// 	ctrl.reset_install = true;
+			// }
+			// // if (button_mode_enter_reset_3s) //button_mode_5s)
+			// // {
+			// // 	Serial_flush();
+			// // 	button_mode_enter_reset_3s = 0;
+			// // 	ctrl.reset_install = true;
+			// // }
+			// if (ctrl.reset_install)
+			// {
+			// 	flash_reset_install_led();
+			// 	start_emulate_press_enter_reset();
+			// }
+			// else
+			// {
+			// 	if (ctrl.start_install)
+			// 	{
+			// 		start_emulate_press_enter_install_mode();
+			// 	}
+			// 	LED_INSTALL_ON;
+			// 	//flash_install_led();
+			// }
+
+			start_emulate_press_enter_install_mode();
+
 			if (Serial_available() > 0) 
 			{
 				incomingByte = Serial_read(); // get the character
@@ -563,27 +632,27 @@ void switch_menu_press_plus(Control* ctrl)
 
 bool scan_change_mode(Control* ctrl)
 {
-	if (button_mode_fall)
+	if (button_mode)
 	{
 		uint8_t mode = (uint8_t)ctrl->required_mode;
 		uint32_t time_end = millis() + 3000;
 		while (true)
 		{
 			IWDG_ReloadCounter();
-			if (button_mode_fall)
+			if (button_mode)
 			{
 				time_end = millis() + 3000;
-				button_mode_fall = 0;
+				button_mode = 0;
 				mode += 1;
 				if (mode >= 4)
 				{
 					mode = 1;
 				}
+				button_enter_release = 0;
 			}
-			if (button_enter)
+			if (button_enter_release)
 			{
-				button_enter = 0;
-				button_mode_fall = 0;
+				button_enter_release = 0;
 				if (mode == ctrl->required_mode)
 				{
 					return false;
@@ -598,7 +667,7 @@ bool scan_change_mode(Control* ctrl)
 			if (millis() > time_end || button_plus || button_minus)
 			{
 				continous_flash_led(ctrl->required_mode);
-				button_mode_fall = 0;
+				button_enter_release = 0;
 				button_plus = 0;
 				button_minus = 0;
 				return false;
@@ -607,6 +676,53 @@ bool scan_change_mode(Control* ctrl)
 	}
 	return false;
 }
+
+// bool scan_change_mode(Control* ctrl)
+// {
+// 	if (button_mode_fall)
+// 	{
+// 		uint8_t mode = (uint8_t)ctrl->required_mode;
+// 		uint32_t time_end = millis() + 3000;
+// 		while (true)
+// 		{
+// 			IWDG_ReloadCounter();
+// 			if (button_mode_fall)
+// 			{
+// 				time_end = millis() + 3000;
+// 				button_mode_fall = 0;
+// 				mode += 1;
+// 				if (mode >= 4)
+// 				{
+// 					mode = 1;
+// 				}
+// 			}
+// 			if (button_enter)
+// 			{
+// 				button_enter = 0;
+// 				button_mode_fall = 0;
+// 				if (mode == ctrl->required_mode)
+// 				{
+// 					return false;
+// 				}
+// 				ctrl->required_mode = mode;
+// 				LEDS_OFF;
+// 				flash_led(ctrl->required_mode);
+// 				return true;
+// 			}
+// 			continous_flash_led(mode);
+// 			scan_buttons();
+// 			if (millis() > time_end || button_plus || button_minus)
+// 			{
+// 				continous_flash_led(ctrl->required_mode);
+// 				button_mode_fall = 0;
+// 				button_plus = 0;
+// 				button_minus = 0;
+// 				return false;
+// 			}
+// 		}
+// 	}
+// 	return false;
+// }
 
 bool buf_cmp(uint8_t* buf, uint8_t buflen, uint8_t* target, uint8_t tlen)
 {
@@ -805,17 +921,21 @@ void flash_led(Flash_mode flash)
 		{
 		case FLASH_UP:
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_UP_PIN);
-			GPIO_WriteHigh(LED_GPIO_PORT, LED_DOWN_PIN);
+			//GPIO_WriteHigh(LED_GPIO_PORT, LED_DOWN_PIN);
+			LED_DOWN_OFF;
 			break;
 		case FLASH_DOWN:
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_DOWN_PIN);
-			GPIO_WriteHigh(LED_GPIO_PORT, LED_UP_PIN);
+			//GPIO_WriteHigh(LED_GPIO_PORT, LED_UP_PIN);
+			LED_UP_OFF;
 			break;
 		case FLASH_PLUS_MINUS:
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_PLUS_MINUS_GPIO_PINS);
 			break;
 		case FLASH_NONE:
-			GPIO_WriteHigh(LED_GPIO_PORT, PULT_LED_GPIO_PINS);
+			LED_UP_OFF;
+			LED_DOWN_OFF;
+			//LED_INSTALL_OFF;
 			break;
 		case FLASH_INSTALL:
 			GPIO_WriteReverse(LED_GPIO_PORT, LED_INSTALL_PIN);
@@ -844,11 +964,13 @@ void scan_buttons()
 		{
 			// Serial.println(F("PLUS ON"));
 			button_plus = 1;
+			LED_GREEN_ON;
 		}
 		if (buttonStateOFF[BUT_PLUS])
 		{
 			// Serial.println(F("PLUS OFF"));
 			button_plus = 0;
+			LED_GREEN_OFF;
 		}
 	}
 	//minus
@@ -859,11 +981,13 @@ void scan_buttons()
 		{
 			// Serial.println(F("MINUS ON"));
 			button_minus = 1;
+			LED_GREEN_ON;
 		}
 		if (buttonStateOFF[BUT_MINUS])
 		{
 			// Serial.println(F("MINUS OFF"));
 			button_minus = 0;
+			LED_GREEN_OFF;
 		}
 	}
   //mode
@@ -874,12 +998,14 @@ void scan_buttons()
 		{
 			// Serial.println(F("MINUS ON"));
 			button_mode = 1;
+			LED_GREEN_ON;
 		}
 		if (buttonStateOFF[BUT_MODE])
 		{
 			// Serial.println(F("MINUS OFF"));
 			button_mode = 0;
 			button_mode_fall = 1;
+			LED_GREEN_OFF;
 		}
 	}
 	//press mode 3sec
@@ -903,36 +1029,46 @@ void scan_buttons()
 		{
 			// Serial.println(F("ENTER ON"));
 			button_enter = 1;
+			LED_GREEN_ON;
 		}
 		if (buttonStateOFF[BUT_ENTER])
 		{
 			// Serial.println(F("ENTER OFF"));
 			button_enter = 0;
+			button_enter_release = 1;
+			LED_GREEN_OFF;
 		}
 	}
     //mode+enter
-    if (button_enter && button_mode)
-    {
-        button_mode_enter_reset_3s = 1;
-    }
-    else
-    {
-        button_mode_enter_reset_3s = 0;
-        mode_enter_delay_3sec = millis() + DELAY_PRESS;
-    }
+    // if (button_enter && button_mode)
+    // {
+	// 	if (millis() > mode_enter_delay_3sec)
+	// 	{
+	// 		button_mode_enter_reset_3s = 1;
+	// 	}
+    // }
+    // else
+    // {
+    //     button_mode_enter_reset_3s = 0;
+    //     mode_enter_delay_3sec = millis() + DELAY_PRESS;
+    // }
     
 	//press enter 3sec
-	if (!button_enter || button_plus || button_minus || button_mode)
-	{
-		button_enter_3s = 0;
-		enter_delay_3sec = millis() + DELAY_PRESS;
-	}
+	// if (!button_enter || button_plus || button_minus || button_mode)
+	// {
+	// 	button_enter_3s = 0;
+	// 	enter_delay_3sec = millis() + DELAY_PRESS;
+	// }
 	if (button_enter)
 	{
 		if (millis() > enter_delay_3sec)
 		{
 			button_enter_3s = 1;
 		}
+	}
+	else{
+		button_enter_3s = 0;
+		enter_delay_3sec = millis() + DELAY_PRESS;
 	}
 }
 
@@ -987,8 +1123,8 @@ static void GPIO_Config()
   	// GPIO_Init(LED_GPIO_PORT, (GPIO_Pin_TypeDef)LED_GPIO_PINS, GPIO_MODE_OUT_PP_LOW_FAST);
   	// GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS);
 	//rezonit
-	GPIO_Init(LED_GPIO_PORT, (GPIO_Pin_TypeDef)REZ_LED_GPIO_PINS, GPIO_MODE_OUT_PP_LOW_FAST);
-  	GPIO_WriteLow(LED_GPIO_PORT, REZ_LED_GPIO_PINS);
+	GPIO_Init(LED_GPIO_PORT, (GPIO_Pin_TypeDef)ALL_LED_GPIO_PINS, GPIO_MODE_OUT_PP_LOW_FAST);
+  	LEDS_OFF;
   	//gerkon in
   	//GPIO_Init(GERKON_GPIO_PORT, (GPIO_Pin_TypeDef)GERKON_PIN, GPIO_MODE_IN_FL_NO_IT);
   	//out to block stiboard

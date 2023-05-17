@@ -8,7 +8,7 @@
 #define LED_GPIO_PINS  (GPIO_PIN_3 | GPIO_PIN_1 | GPIO_PIN_4)
 //rezonit
 #define PULT_LED_GPIO_PINS  (GPIO_PIN_3 | GPIO_PIN_1 | GPIO_PIN_4)
-#define REZ_LED_GPIO_PINS  (GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_3)
+#define ALL_LED_GPIO_PINS  (GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_3)
 
 #define OUT_GPIO_PORT  (GPIOD)
 #define OUT_GPIO_PINS  (GPIO_PIN_7 | GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_0)
@@ -18,16 +18,20 @@
 #define OUT_MINUS_PIN (GPIO_PIN_4)
 #define OUT_ENTER_PIN (GPIO_PIN_7)
 
-//red
-#define LED_INSTALL_PIN (GPIO_PIN_4) //led3
-#define LED_INSTALL_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_INSTALL_PIN))
+#define LED_GREEN_PIN (GPIO_PIN_1) //ld2 green
+#define LED_GREEN_OFF (GPIO_WriteLow(LED_GPIO_PORT, LED_GREEN_PIN))
+#define LED_GREEN_ON (GPIO_WriteHigh(LED_GPIO_PORT, LED_GREEN_PIN))
+
+#define LED_INSTALL_PIN (GPIO_PIN_2) //ld3 red
+#define LED_INSTALL_OFF (GPIO_WriteLow(LED_GPIO_PORT, LED_INSTALL_PIN))
+#define LED_INSTALL_ON (GPIO_WriteHigh(LED_GPIO_PORT, LED_INSTALL_PIN))
 
 //test led
-#define TEST_LED	GPIO_WriteHigh(LED_GPIO_PORT, REZ_LED_GPIO_PINS); \
-					uint32_t t = millis() + 2000; \
+#define TEST_LED	GPIO_WriteHigh(LED_GPIO_PORT, ALL_LED_GPIO_PINS); \
+					uint32_t t = millis() + 1000; \
 					while (t > millis()){ \
 					IWDG_ReloadCounter();} \
-					GPIO_WriteLow(LED_GPIO_PORT, REZ_LED_GPIO_PINS)
+					GPIO_WriteLow(LED_GPIO_PORT, ALL_LED_GPIO_PINS)
 
 #define BUTTON_COUNT	4
 #define DEBOUNCE_ms 50
@@ -42,8 +46,8 @@
 #define BUT_PLUS 2 //but2
 #define BUT_ENTER 3 //but3
 #define SIZE_BUFFER 100
-#define LEDS_ON (GPIO_WriteHigh(LED_GPIO_PORT, PULT_LED_GPIO_PINS))
-#define LEDS_OFF (GPIO_WriteLow(LED_GPIO_PORT, PULT_LED_GPIO_PINS))
+#define LEDS_ON (GPIO_WriteHigh(LED_GPIO_PORT, ALL_LED_GPIO_PINS))
+#define LEDS_OFF (GPIO_WriteLow(LED_GPIO_PORT, ALL_LED_GPIO_PINS))
 // #define LEDS_OFF (GPIO_WriteHigh(LED_GPIO_PORT, LED_GPIO_PINS))
 // #define LEDS_ON (GPIO_WriteLow(LED_GPIO_PORT, LED_GPIO_PINS))
 // #define LED_PLUS_MINUS_OFF (GPIO_WriteHigh(LED_GPIO_PORT, LED_PLUS_MINUS_GPIO_PINS))
@@ -68,6 +72,7 @@
 #define OUT_PIN_OFF (GPIO_WriteHigh(OUT_GPIO_PORT, OUT_GPIO_PINS))
 #define RESET_TIME_LOOP_10s (time_loop = millis() + 10000)
 #define RESET_TIME_LOOP_15s (time_loop = millis() + 15000)
+#define RESET_TIME_LOOP_30s (time_loop = millis() + 30000)
 #define RESET_TIME_PODMENU_30m (time_loop_podmenu = millis() + 1800000UL)
 #define DELAY_PRESS 3000
 
